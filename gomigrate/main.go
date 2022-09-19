@@ -1,76 +1,47 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
-	"slqmigration/misc"
-	v1 "slqmigration/rawsql/book/v1"
-	v2 "slqmigration/rawsql/book/v2"
-	v3 "slqmigration/rawsql/book/v3"
+	v2 "sqlmigration/gomigrate/book/v2"
+	v3 "sqlmigration/gomigrate/book/v3"
+	"sqlmigration/misc"
+	v1 "sqlmigration/rawsql/book/v1"
 )
 
 func main() {
-	db, err := v1.CreateDb()
+	db, err := misc.CreateDb()
 	defer db.Close()
+	misc.PanicOnError(err)
 
+	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	misc.PanicOnError(err)
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://gomigrate/migrations/",
+		"foo",
+		driver,
+	)
 	misc.PanicOnError(err)
 
 	// create v1
-	v1.CreateV1Table(db)
+	err = m.Steps(1)
+	misc.PanicOnError(err)
 	v1.AddSampleRows(db)
 
 	// migrate to v2
-	v2.MigrateFromV1(db)
+	err = m.Steps(1)
+	misc.PanicOnError(err)
 	v2.AddSampleRows(db)
 
 	// migrate to v3
-	v3.MigrateFromV2(db)
+	err = m.Steps(1)
+	misc.PanicOnError(err)
 	v3.AddSampleRows(db)
-}
 
-func list1(db *sql.DB) error {
-	rows, err := db.Query("select id, name from foo")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int
-		var name string
-		err = rows.Scan(&id, &name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(id, name)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return err
-}
-
-func tx1(db *sql.DB) error {
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	stmt, err := tx.Prepare("insert into foo(id, name) values(?, ?)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	for i := 0; i < 100; i++ {
-		_, err = stmt.Exec(i, fmt.Sprintf("こんにちは世界%03d", i))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return err
+	fmt.Println("")
 }

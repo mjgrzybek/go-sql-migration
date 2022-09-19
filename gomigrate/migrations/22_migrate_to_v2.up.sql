@@ -1,0 +1,2 @@
+ALTER TABLE books ADD COLUMN author TEXT DEFAULT '<unknown>';
+ALTER TABLE books ADD COLUMN year INTEGER;

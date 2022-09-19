@@ -2,7 +2,7 @@ package v2
 
 import (
 	"database/sql"
-	"slqmigration/misc"
+	"sqlmigration/misc"
 )
 
 type Book struct {

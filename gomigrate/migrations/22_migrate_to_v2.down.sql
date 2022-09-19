@@ -1,0 +1,2 @@
+ALTER TABLE books DROP COLUMN author;
+ALTER TABLE books DROP COLUMN year;
